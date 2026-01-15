@@ -45,7 +45,7 @@ void frame_system_init(void);
  *         Valid until the next call to read_frame().
  *         NULL if no frame is available.
  */
-table_frame_t *read_frame(void);
+bool read_frame(table_frame_t *playerbufferptr);
 
 /* 
  

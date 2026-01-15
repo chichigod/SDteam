@@ -30,7 +30,6 @@ void frame_system_init(void)
     frame_sem = xSemaphoreCreateBinary();
     configASSERT(frame_sem);
 
-    /* 初始狀態：允許 SD 先讀一幀 */
     xSemaphoreGive(frame_sem);
 
     xTaskCreate(
@@ -45,16 +44,18 @@ void frame_system_init(void)
     ESP_LOGI(TAG, "Frame system (single buffer) initialized");
 }
 
-table_frame_t *read_frame(void)
+bool read_frame(table_frame_t *playerbufferptr)
 {
-    /* 等 SD task 讀好 */
+    if (!playerbufferptr) return false;
+
+    /* 等 SD task 讀好 internal buffer */
     xSemaphoreTake(frame_sem, portMAX_DELAY);
 
-    /* 直接回傳 buffer */
-    table_frame_t *p = &frame_buf;
+    /* 把 internal buffer copy 給 player */
+    memcpy(playerbufferptr, &frame_buf, sizeof(table_frame_t));
 
     /* 允許 SD task 讀下一幀 */
     xSemaphoreGive(frame_sem);
 
-    return p;
+    return true;
 }
