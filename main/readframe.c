@@ -15,20 +15,26 @@ static void sd_reader_task(void *arg)
 {
     while (1) {
         xSemaphoreTake(frame_sem, portMAX_DELAY);
-
-        if (!readframe_from_sd(&frame_buf)) {
-            ESP_LOGW(TAG, "EOF, SD reader stopped");
+        bool ok = readframe_from_sd(&frame_buf);
+        xSemaphoreGive(frame_sem);
+        if (!ok) {
+            ESP_LOGW(TAG, "SD reader EOF or error");
             vTaskDelay(portMAX_DELAY);
         }
-
-        xSemaphoreGive(frame_sem);
     }
 }
 
-void frame_system_init(void)
+bool frame_init(const char *sd_path)
 {
+    if (!frame_reader_init(sd_path)) {
+        ESP_LOGE(TAG, "frame_reader_open failed");
+        return false;
+    }
     frame_sem = xSemaphoreCreateBinary();
-    configASSERT(frame_sem);
+    if (!frame_sem) {
+        ESP_LOGE(TAG, "Semaphore create failed");
+        return false;
+    }
 
     xSemaphoreGive(frame_sem);
 
@@ -42,6 +48,7 @@ void frame_system_init(void)
     );
 
     ESP_LOGI(TAG, "Frame system (single buffer) initialized");
+    return false;
 }
 
 bool read_frame(table_frame_t *playerbufferptr)

@@ -36,7 +36,7 @@ typedef struct {
  * @brief Initialize frame system.
  *        Must be called once before read_frame().
  */
-void frame_system_init(void);
+bool frame_init(const char *sd_path);
 
 /**
  * @brief Get next frame.
