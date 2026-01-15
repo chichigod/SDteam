@@ -7,7 +7,7 @@
 static const char *TAG = "frame_reader";
 static FILE *fp = NULL;
 
-extern uint16_t LED_bulbs[WS2812B_NUM];
+extern uint16_t LED_bulbs[WS2812B_NUM];  // need to be defined somewhere else
 
 static bool read_u24_le(FILE *f, uint32_t *out)
 {

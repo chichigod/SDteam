@@ -5,7 +5,7 @@
 
 /* ===== Configuration (provided by platform) ===== */
 #ifndef WS2812B_NUM
-#define WS2812B_NUM  4     // example default
+#define WS2812B_NUM  4     
 #endif
 
 #ifndef PCA9955B_CH_NUM
@@ -30,7 +30,7 @@ typedef struct {
     frame_data data;
 } table_frame_t;
 
-/* ===== Player API ===== */
+/*  Player API */
 
 /**
  * @brief Initialize frame system.
