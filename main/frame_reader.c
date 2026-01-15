@@ -7,15 +7,13 @@
 static const char *TAG = "frame_reader";
 static FILE *fp = NULL;
 
-/* 由系統初始化：每個 WS2812B channel 的燈泡數 */
 extern uint16_t LED_bulbs[WS2812B_NUM];
 
-/* 讀 24-bit little-endian unsigned integer */
 static bool read_u24_le(FILE *f, uint32_t *out)
 {
     uint8_t b[3];
     if (fread(b, 1, 3, f) != 3) {
-        return false; // EOF 或錯誤
+        return false; 
     }
     *out = (uint32_t)b[0]
          | ((uint32_t)b[1] << 8)
@@ -23,7 +21,6 @@ static bool read_u24_le(FILE *f, uint32_t *out)
     return true;
 }
 
-/* 開檔並準備讀取 */
 bool frame_reader_init(const char *path)
 {
     fp = fopen(path, "rb");
@@ -35,12 +32,10 @@ bool frame_reader_init(const char *path)
     return true;
 }
 
-/* 讀取下一個 frame，填入 p */
 bool readframe_from_sd(table_frame_t *p)
 {
     if (!fp || !p) return false;
 
-    /* 先清零，避免不足資料時留下舊值造成誤判 */
     memset(p, 0, sizeof(*p));
 
     /* -------- 1) Frame Header: start_time (u24) + fade (u8) -------- */

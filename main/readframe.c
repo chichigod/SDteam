@@ -6,7 +6,7 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 
-static const char *TAG = "frame_system";
+static const char *TAG = "readframe";
 
 static table_frame_t frame_buf;
 static SemaphoreHandle_t frame_sem;
