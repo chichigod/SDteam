@@ -38,7 +38,7 @@ bool readframe_from_sd(table_frame_t *p)
 
     memset(p, 0, sizeof(*p));
 
-    /* -------- 1) Frame Header: start_time (u24) + fade (u8) -------- */
+    /* 1) header */
     uint32_t start_time;
     if (!read_u24_le(fp, &start_time)) {
         ESP_LOGW(TAG, "EOF/read error at timestamp");
@@ -54,7 +54,7 @@ bool readframe_from_sd(table_frame_t *p)
     p->timestamp = (uint64_t)start_time;
     p->fade = (fade_u8 != 0);
 
-    /* -------- 2) OF Data: PCA9955B_CH_NUM * RGB -------- */
+    /* 2) OF */
     for (int i = 0; i < PCA9955B_CH_NUM; i++) {
         uint8_t rgb[3];
         if (fread(rgb, 1, 3, fp) != 3) {
@@ -62,17 +62,16 @@ bool readframe_from_sd(table_frame_t *p)
             return false;
         }
 
-        /* 檔案是 RGB，但 struct 是 GRB */
+        /* file : RGB ; struct : GRB */
         p->data.pca9955b[i].r = rgb[0];
         p->data.pca9955b[i].g = rgb[1];
         p->data.pca9955b[i].b = rgb[2];
     }
 
-    /* -------- 3) LED Data: sum(LED_bulbs[ch]) * RGB -------- */
+    /* 3) LED */
     for (int ch = 0; ch < WS2812B_NUM; ch++) {
         uint16_t n = LED_bulbs[ch];
 
-        /* 防呆：避免檔案宣稱的燈數超出你 struct [100] 上限 */
         if (n > 100) {
             ESP_LOGE(TAG, "LED_bulbs[%d]=%u exceeds limit 100", ch, (unsigned)n);
             return false;
