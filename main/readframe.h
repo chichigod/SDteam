@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* ===== Configuration (provided by platform) ===== */
 #ifndef WS2812B_NUM
 #define WS2812B_NUM  4     
 #endif
@@ -33,17 +32,17 @@ typedef struct {
 /*  Player API */
 
 /**
- * @brief Initialize frame system.
- *        Must be called once before read_frame().
+ *  Initialize frame system.
+ *       Must be called once before read_frame().
  */
 bool frame_init(const char *sd_path);
 
 /**
- * @brief Get next frame.
+ * Get next frame.
  *
- * @return Pointer to an internal frame buffer.
- *         Valid until the next call to read_frame().
- *         NULL if no frame is available.
+ * memcpy into playerbuffer
+ *       
+ *        
  */
 bool read_frame(table_frame_t *playerbuffer);
 

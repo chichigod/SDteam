@@ -51,15 +51,15 @@ bool frame_init(const char *sd_path)
     return false;
 }
 
-bool read_frame(table_frame_t *playerbufferptr)
+bool read_frame(table_frame_t *playerbuffer)
 {
-    if (!playerbufferptr) return false;
+    if (!playerbuffer) return false;
 
     /* 等 SD task 讀好 internal buffer */
     xSemaphoreTake(frame_sem, portMAX_DELAY);
 
     /* 把 internal buffer copy 給 player */
-    memcpy(playerbufferptr, &frame_buf, sizeof(table_frame_t));
+    memcpy(playerbuffer, &frame_buf, sizeof(table_frame_t));
 
     /* 允許 SD task 讀下一幀 */
     xSemaphoreGive(frame_sem);
