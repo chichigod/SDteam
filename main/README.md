@@ -1,4 +1,4 @@
-# Player API Guide – `read_frame()`
+# Player API Guide 
 
 This document is written for the player team. It explains what the frame system provides, how to use it correctly, and what assumptions the system makes. 
 
