@@ -45,7 +45,7 @@ bool frame_init(const char *sd_path);
  *         Valid until the next call to read_frame().
  *         NULL if no frame is available.
  */
-bool read_frame(table_frame_t *playerbufferptr);
+bool read_frame(table_frame_t *playerbuffer);
 
 /* 
  
