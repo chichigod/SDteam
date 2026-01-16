@@ -15,8 +15,8 @@ This function delivers the **next animation frame** for playback.
 
 Internally:
 
-* A background task continuously prepares frames
-* Synchronization and data integrity are fully handled by the system
+A background task continuously prepares frames
+Synchronization and data integrity are fully handled by the system
 
 From the player’s point of view, this behaves like a **blocking frame queue**.
 
