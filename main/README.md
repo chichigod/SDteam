@@ -1,12 +1,11 @@
 # Player API Guide – `read_frame()`
 
-This document is written **for the player team**. It explains what the frame system provides, how to use it correctly, and what assumptions the system makes. 
+This document is written for the player team. It explains what the frame system provides, how to use it correctly, and what assumptions the system makes. 
 
----
 
-## 1. 
 
-API:
+## 1. API
+
 
 ```c
 bool read_frame(table_frame_t *playerbuffer);
@@ -45,7 +44,7 @@ This must be called **before** any call to `read_frame()`.
 
 ---
 
-## 3. What Happens When `read_frame()` Is Called
+## 3. What Happens When read_frame() Is Called
 
 When the player calls `read_frame()`:
 
@@ -55,16 +54,16 @@ When the player calls `read_frame()`:
 
 ### Guarantees
 
-* The returned frame is **complete and valid**
+* The returned frame is complete and valid
 * Frame order is preserved
 * No partial or corrupted data is ever returned
 
 ### Blocking behavior
 
-* `read_frame()` **may block briefly** if the next frame is not ready yet
+* `read_frame()` may block briefly if the next frame is not ready yet
 * Under normal operation, this delay is well below one frame interval
 
-This blocking is **intentional and required** to maintain correctness.
+This blocking is intentional and required to maintain correctness.
 
 ---
 
