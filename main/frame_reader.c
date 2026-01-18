@@ -1,94 +1,85 @@
 #include "frame_reader.h"
-
-#include <stdio.h>
-#include <string.h>
+#include "frame_config.h"
+#include "ff.h"
 #include "esp_log.h"
+#include <string.h>
 
 static const char *TAG = "frame_reader";
-static FILE *fp = NULL;
 
-extern uint16_t LED_bulbs[WS2812B_NUM];  // need to be defined somewhere else
+static FIL fp;
+static bool opened = false;
+static uint32_t frame_size = 0;
 
-static bool read_u24_le(FILE *f, uint32_t *out)
+static inline void rgb_to_grb(grb8_t *d, const uint8_t rgb[3])
 {
-    uint8_t b[3];
-    if (fread(b, 1, 3, f) != 3) {
-        return false; 
-    }
-    *out = (uint32_t)b[0]
-         | ((uint32_t)b[1] << 8)
-         | ((uint32_t)b[2] << 16);
-    return true;
+    d->r = rgb[0];
+    d->g = rgb[1];
+    d->b = rgb[2];
 }
 
 bool frame_reader_init(const char *path)
 {
-    fp = fopen(path, "rb");
-    if (!fp) {
-        ESP_LOGE(TAG, "Failed to open %s", path);
+    if (f_open(&fp, path, FA_READ) != FR_OK) {
+        ESP_LOGE(TAG, "open frame.dat failed");
         return false;
     }
-    ESP_LOGI(TAG, "Opened %s", path);
+
+    frame_size = 1;                     // fade
+    frame_size += g_of_num * 3;         // OF
+    for (int i = 0; i < g_strip_num; i++)
+        frame_size += g_led_num[i] * 3; // WS2812B
+
+    opened = true;
+    ESP_LOGI(TAG, "frame payload size=%u", frame_size);
     return true;
 }
 
-bool readframe_from_sd(table_frame_t *p)
+frame_reader_result_t frame_reader_read(table_frame_t *out, uint32_t ts)
 {
-    if (!fp || !p) return false;
+    if (!opened || !out) return FRAME_READER_IO_ERROR;
 
-    memset(p, 0, sizeof(*p));
+    UINT br;
+    uint8_t rgb[3];
+    memset(out, 0, sizeof(*out));
+    out->timestamp = ts;
 
-    /* 1) header */
-    uint32_t start_time;
-    if (!read_u24_le(fp, &start_time)) {
-        ESP_LOGW(TAG, "EOF/read error at timestamp");
-        return false;
+    uint8_t fade;
+    if (f_read(&fp, &fade, 1, &br) != FR_OK || br != 1)
+        return FRAME_READER_EOF;
+    out->fade = (fade != 0);
+
+    for (int i = 0; i < g_of_num; i++) {
+        if (f_read(&fp, rgb, 3, &br) != FR_OK || br != 3)
+            return FRAME_READER_EOF;
+        rgb_to_grb(&out->data.pca9955b[i], rgb);
     }
 
-    uint8_t fade_u8;
-    if (fread(&fade_u8, 1, 1, fp) != 1) {
-        ESP_LOGW(TAG, "EOF/read error at fade");
-        return false;
-    }
-
-    p->timestamp = (uint64_t)start_time;
-    p->fade = (fade_u8 != 0);
-
-    /* 2) OF */
-    for (int i = 0; i < PCA9955B_CH_NUM; i++) {
-        uint8_t rgb[3];
-        if (fread(rgb, 1, 3, fp) != 3) {
-            ESP_LOGW(TAG, "EOF/read error at OF[%d]", i);
-            return false;
-        }
-
-        /* file : RGB ; struct : GRB */
-        p->data.pca9955b[i].r = rgb[0];
-        p->data.pca9955b[i].g = rgb[1];
-        p->data.pca9955b[i].b = rgb[2];
-    }
-
-    /* 3) LED */
-    for (int ch = 0; ch < WS2812B_NUM; ch++) {
-        uint16_t n = LED_bulbs[ch];
-
-        if (n > 100) {
-            ESP_LOGE(TAG, "LED_bulbs[%d]=%u exceeds limit 100", ch, (unsigned)n);
-            return false;
-        }
-
+    for (int ch = 0; ch < g_strip_num; ch++) {
+        uint8_t n = g_led_num[ch];
+        if (n > WS2812B_MAX_LED) n = WS2812B_MAX_LED;
         for (int i = 0; i < n; i++) {
-            uint8_t rgb[3];
-            if (fread(rgb, 1, 3, fp) != 3) {
-                ESP_LOGW(TAG, "EOF/read error at LED[ch=%d][%d]", ch, i);
-                return false;
-            }
-
-            p->data.ws2812b[ch][i].r = rgb[0];
-            p->data.ws2812b[ch][i].g = rgb[1];
-            p->data.ws2812b[ch][i].b = rgb[2];
+            if (f_read(&fp, rgb, 3, &br) != FR_OK || br != 3)
+                return FRAME_READER_EOF;
+            rgb_to_grb(&out->data.ws2812b[ch][i], rgb);
         }
     }
 
-    return true;
+    return FRAME_READER_OK;
+}
+
+bool frame_reader_seek(uint32_t offset)
+{
+    return opened && (f_lseek(&fp, offset) == FR_OK);
+}
+
+uint32_t frame_reader_frame_size(void)
+{
+    return frame_size;
+}
+
+void frame_reader_deinit(void)
+{
+    if (!opened) return;
+    f_close(&fp);
+    opened = false;
 }
