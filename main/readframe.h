@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include "esp_err.h"
 #include "table_frame.h"
+#include "channel_info.h"
+
+ch_info_t get_channel_info(void);
 
 esp_err_t frame_system_init(const char *control_path,
                             const char *frame_path);
