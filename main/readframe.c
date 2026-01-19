@@ -18,8 +18,8 @@ static control_info_t g_ctrl;
 
 static table_frame_t frame_buf;     /* single internal buffer */
 
-static SemaphoreHandle_t sem_free;  /* buffer 可寫 */
-static SemaphoreHandle_t sem_ready; /* buffer 可讀 */
+static SemaphoreHandle_t sem_free;  /* buffer write */
+static SemaphoreHandle_t sem_ready; /* buffer read */
 
 static TaskHandle_t sd_task = NULL;
 
