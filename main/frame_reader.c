@@ -90,68 +90,52 @@ esp_err_t frame_reader_read(table_frame_t *out)
 
     memset(out, 0, sizeof(*out));
 
+    static uint8_t raw[4096];
+    if (g_frame_size > sizeof(raw))
+        return ESP_ERR_INVALID_SIZE;
+
+    UINT br;
+    if (f_read(&fp, raw, g_frame_size, &br) != FR_OK || br != g_frame_size)
+        return ESP_ERR_NOT_FOUND;
+
+    uint8_t *p = raw;
     uint32_t sum = 0;
 
-    /* start_time (uint32 little-endian) */
-    uint8_t start_time_raw[4];
-    esp_err_t err = read_exact(start_time_raw, 4, &sum);
-    if (err != ESP_OK) return err;
-
-    uint32_t start_time =
-        (uint32_t)start_time_raw[0]
-      | ((uint32_t)start_time_raw[1] << 8)
-      | ((uint32_t)start_time_raw[2] << 16)
-      | ((uint32_t)start_time_raw[3] << 24);
-
-    out->timestamp = (uint64_t)start_time;
+    /* start_time */
+    uint32_t ts = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    sum += p[0] + p[1] + p[2] + p[3];
+    p += 4;
+    out->timestamp = ts;
 
     /* fade */
-    uint8_t fade_u8 = 0;
-    err = read_exact(&fade_u8, 1, &sum);
-    if (err != ESP_OK) return err;
-    out->fade = (fade_u8 != 0);
+    out->fade = (*p != 0);
+    sum += *p;
+    p++;
 
-    /* OF GRB data: OF[i] = (G,R,B) */
+    /* OF */
     for (uint8_t i = 0; i < g_layout.of_num; i++) {
-        uint8_t grb[3];
-        err = read_exact(grb, 3, &sum);
-        if (err != ESP_OK) return err;
-
-        out->data.pca9955b[i].g = grb[0];
-        out->data.pca9955b[i].r = grb[1];
-        out->data.pca9955b[i].b = grb[2];
+        out->data.pca9955b[i].g = p[0];
+        out->data.pca9955b[i].r = p[1];
+        out->data.pca9955b[i].b = p[2];
+        sum += p[0] + p[1] + p[2];
+        p += 3;
     }
 
-    /* LED GRB data: ordered by strip, then LED index */
+    /* LED */
     for (uint8_t ch = 0; ch < g_layout.strip_num; ch++) {
-        uint8_t n = g_layout.led_num[ch];
-        if (n > WS2812B_MAX_LED) n = WS2812B_MAX_LED;
-
-        for (uint8_t i = 0; i < n; i++) {
-            uint8_t grb[3];
-            err = read_exact(grb, 3, &sum);
-            if (err != ESP_OK) return err;
-
-            out->data.ws2812b[ch][i].g = grb[0];
-            out->data.ws2812b[ch][i].r = grb[1];
-            out->data.ws2812b[ch][i].b = grb[2];
+        for (uint8_t i = 0; i < g_layout.led_num[ch]; i++) {
+            out->data.ws2812b[ch][i].g = p[0];
+            out->data.ws2812b[ch][i].r = p[1];
+            out->data.ws2812b[ch][i].b = p[2];
+            sum += p[0] + p[1] + p[2];
+            p += 3;
         }
     }
 
-    /* checksum (uint32 little-endian) : not included in sum */
-    uint8_t checksum_raw[4];
-    err = read_exact(checksum_raw, 4, NULL);
-    if (err != ESP_OK) return err;
-
-    uint32_t checksum_file =
-        (uint32_t)checksum_raw[0]
-      | ((uint32_t)checksum_raw[1] << 8)
-      | ((uint32_t)checksum_raw[2] << 16)
-      | ((uint32_t)checksum_raw[3] << 24);
-
-    if (sum != checksum_file) {
-        ESP_LOGE(TAG, "checksum mismatch: calc=%u file=%u (ts=%u)",
-                 (unsigned)sum, (unsigned)checksum_file, (unsigned)start_time);
+    /* checksum */
+    uint32_t chk = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    if (chk != sum) {
+        ESP_LOGE(TAG, "checksum mismatch %u != %u", sum, chk);
         return ESP_ERR_INVALID_CRC;
     }
 
