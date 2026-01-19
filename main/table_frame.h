@@ -2,13 +2,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* ===== compile-time upper bound ===== */
-
+/* compile-time upper bounds (document constraints: OF<=40, Strip<=8, LED<=100) */
 #define WS2812B_MAX_STRIP   8
 #define WS2812B_MAX_LED     100
-#define PCA9955B_MAX_CH     16
-
-/* ===== playerteam struct ===== */
+#define PCA9955B_MAX_CH     40
 
 typedef struct {
     uint8_t g;
@@ -22,7 +19,7 @@ typedef struct {
 } frame_data;
 
 typedef struct {
-    uint64_t timestamp;
-    bool     fade;
+    uint64_t timestamp;   // from frame.dat: start_time (uint32 extended)
+    bool     fade;        // from frame.dat
     frame_data data;
 } table_frame_t;
