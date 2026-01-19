@@ -37,6 +37,37 @@ static sd_cmd_t cmd = CMD_NONE;
 static uint32_t seek_idx = 0;
 
 /* ================= helpers ================= */
+#include "channel_info.h"
+
+ch_info_t get_channel_info(void)
+{
+    ch_info_t info;
+    memset(&info, 0, sizeof(info));
+
+    /* WS2812B (RMT) */
+    uint8_t strip_n = g_ctrl.strip_num;
+    if (strip_n > WS2812B_NUM)
+        strip_n = WS2812B_NUM;
+
+    for (uint8_t i = 0; i < strip_n; i++) {
+        uint16_t n = g_ctrl.led_num[i];
+        if (n > WS2812B_MAX_LED)
+            n = WS2812B_MAX_LED;
+        info.rmt_strips[i] = n;
+    }
+
+    /* PCA9955B (I2C) */
+    uint8_t of_n = g_ctrl.of_num;
+    if (of_n > PCA9955B_CH_NUM)
+        of_n = PCA9955B_CH_NUM;
+
+    for (uint8_t i = 0; i < of_n; i++) {
+        info.i2c_leds[i] = 1;  // 每個 channel = 1 pixel
+    }
+
+    return info;
+}
+
 
 static uint32_t find_idx_by_ts(uint64_t ts)
 {
